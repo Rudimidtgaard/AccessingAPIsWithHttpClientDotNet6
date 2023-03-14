@@ -6,6 +6,7 @@ using Movies.Client.Services;
 using IHost host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((_, services) =>
     { 
+        //TEst
         // register services for DI
         services.AddLogging(configure => configure.AddDebug().AddConsole());
 
