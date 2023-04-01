@@ -1,14 +1,35 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Movies.Client.Services; 
+using Movies.Client;
+using Movies.Client.Helpers;
+using Movies.Client.Services;
+using Polly;
 
 using IHost host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((_, services) =>
     { 
-        //TEst
         // register services for DI
         services.AddLogging(configure => configure.AddDebug().AddConsole());
+
+        services.AddSingleton<JsonSerializerOptionsWrapper>();
+
+        services.AddHttpClient("MoviesAPIClient",
+            configureClient =>
+            {
+                configureClient.BaseAddress = new Uri("http://localhost:5001");
+                configureClient.Timeout = new TimeSpan(0, 0, 30);
+            })
+        .AddPolicyHandler(Policy.HandleResult<HttpResponseMessage>(response => !response.IsSuccessStatusCode).RetryAsync(5))
+        .ConfigurePrimaryHttpMessageHandler(() =>
+            {
+                var handler = new SocketsHttpHandler();
+                handler.AutomaticDecompression = System.Net.DecompressionMethods.GZip;
+                //handler.AllowAutoRedirect = false;
+                return handler;
+            });
+
+        services.AddHttpClient<MoviesAPIClient>();
 
         // For the cancellation samples
         // services.AddScoped<IIntegrationService, CancellationSamples>();
@@ -17,28 +38,29 @@ using IHost host = Host.CreateDefaultBuilder(args)
         // services.AddScoped<IIntegrationService, CompressionSamples>();
 
         // For the CRUD samples
-        services.AddScoped<IIntegrationService, CRUDSamples>();
+        //services.AddScoped<IIntegrationService, CRUDSamples>();
 
         // For the compression samples
-        // services.AddScoped<IIntegrationService, CompressionSamples>();
+         //services.AddScoped<IIntegrationService, CompressionSamples>();
 
         // For the custom message handler samples
         // services.AddScoped<IIntegrationService, CustomMessageHandlersSamples>();
 
         // For the faults and errors samples
-        // services.AddScoped<IIntegrationService, FaultsAndErrorsSamples>();
+         services.AddScoped<IIntegrationService, FaultsAndErrorsSamples>();
 
         // For the HttpClientFactory samples
         // services.AddScoped<IIntegrationService, HttpClientFactorySamples>();
 
         // For the local streams samples
-        // services.AddScoped<IIntegrationService, LocalStreamsSamples>();
+        //services.AddScoped<IIntegrationService, LocalStreamsSamples>();
 
         // For the partial update samples
-        // services.AddScoped<IIntegrationService, PartialUpdateSamples>();
+        // For this to work. Comment in line 21-25 in the Movies.API
+        //services.AddScoped<IIntegrationService, PartialUpdateSamples>();
 
         // For the remote streaming samples
-        // services.AddScoped<IIntegrationService, RemoteStreamingSamples>();
+        //services.AddScoped<IIntegrationService, RemoteStreamingSamples>();
 
     }).Build();
 
